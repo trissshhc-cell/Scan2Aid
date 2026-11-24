@@ -1,15 +1,54 @@
-'use strict';
-const statusNode = document.querySelector('#offline-status');
-const ceb = document.documentElement.lang === 'ceb';
-const say = (en, bisaya) => { statusNode.textContent = ceb ? bisaya : en; };
-function readyStatus() {
-  if (navigator.onLine) say('✓ Ready for offline use on this device', '✓ Andam gamiton offline niini nga device');
-  else say('✓ Offline mode — saved guide', '✓ Offline mode — natipig nga giya');
+
+const statusNode =
+  document.getElementById("offline-status");
+
+const bisaya =
+  document.documentElement.lang === "ceb";
+
+function showStatus(english, cebuano) {
+  if (statusNode) {
+    statusNode.textContent =
+      bisaya ? cebuano : english;
+  }
 }
-if ('serviceWorker' in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register('./sw.js').then(() => navigator.serviceWorker.ready).then(() => {
-    readyStatus();
-    window.addEventListener('online', readyStatus);
-    window.addEventListener('offline', readyStatus);
-  }).catch(() => say('Offline setup failed. Reload when online.', 'Napakyas ang offline setup. I-reload kon online.'));
-} else say('Offline saving requires HTTPS or localhost.', 'Kinahanglan ang HTTPS o localhost para sa offline.');
+
+async function setupOffline() {
+  if (!("serviceWorker" in navigator)) {
+    showStatus(
+      "Offline mode is not supported.",
+      "Dili suportado ang offline mode."
+    );
+    return;
+  }
+
+  try {
+    await navigator.serviceWorker.register("./sw.js");
+    await navigator.serviceWorker.ready;
+
+    function updateStatus() {
+      showStatus(
+        "✓ Ready for offline use",
+        "✓ Andam gamiton offline"
+      );
+    }
+
+    if (navigator.serviceWorker.controller) {
+      updateStatus();
+    } else {
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        updateStatus
+      );
+    }
+
+  } catch (error) {
+    console.error("Offline setup failed:", error);
+
+    showStatus(
+      "Offline setup failed. Check files.",
+      "Napakyas ang offline setup."
+    );
+  }
+}
+
+setupOffline();
